@@ -34,10 +34,22 @@
         #resultDiv {
             margin-top: 20px;
         }
+
+        #conversationDiv {
+            margin-top: 20px;
+        }
+
+        #conversationDiv p {
+            margin-bottom: 10px;
+        }
+
+        #clearButton {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-<h1>GPT Query</h1>
+<h1>GPT Your Data</h1>
 <form id="queryForm">
     <label for="queryInput">Question:</label>
     <input type="text" id="queryInput" name="queryInput">
@@ -45,11 +57,15 @@
 </form>
 <div id="resultDiv"></div>
 <div id="loadingDiv" class="loading"></div>
+<div id="conversationDiv"></div>
+<button id="clearButton">Clear</button>
 
 <script>
     const form = document.getElementById("queryForm");
     const resultDiv = document.getElementById("resultDiv");
     const loadingDiv = document.getElementById("loadingDiv");
+    const conversationDiv = document.getElementById("conversationDiv");
+    const clearButton = document.getElementById("clearButton");
 
     form.addEventListener("submit", function(event) {
         event.preventDefault();
@@ -67,15 +83,27 @@
         })
             .then(response => response.text())
             .then(result => {
-                resultDiv.innerHTML = `<p><strong>Question:</strong> ${query}</p><p><strong>Answer:</strong> ${result}</p>`;
+                const questionAnswer = document.createElement("p");
+                questionAnswer.innerHTML = `<strong>Question:</strong> ${query}<br><strong>Answer:</strong> ${result}`;
+                conversationDiv.appendChild(questionAnswer);
             })
             .catch(error => {
-                resultDiv.innerHTML = `<p>An error occurred: ${error}</p>`;
+                const errorMessage = document.createElement("p");
+                errorMessage.innerText = `An error occurred: ${error}`;
+                conversationDiv.appendChild(errorMessage);
             })
             .finally(() => {
                 // Hide loading spinner
                 loadingDiv.style.display = "none";
             });
+
+        // Clear input field
+        document.getElementById("queryInput").value = "";
+    });
+
+    clearButton.addEventListener("click", function() {
+        // Clear conversation
+        conversationDiv.innerHTML = "";
     });
 </script>
 </body>
