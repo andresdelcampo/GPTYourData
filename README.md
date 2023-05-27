@@ -30,8 +30,5 @@ Launch the **QueryWeb** app and navigate in your browser to **localhost:5000**.
 
 Enjoy the power of AI-driven search on your local files!
 
-### Included Sample Embeddings
-As an added bonus, we have included sample embeddings for Dungeons and Dragons BECMI. Feel free to explore and ask questions about them using the Query tool!
-
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
