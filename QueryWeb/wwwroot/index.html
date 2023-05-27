@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPT Your Data</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #resultDiv {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<h1>GPT Query</h1>
+<form id="queryForm">
+    <label for="queryInput">Question:</label>
+    <input type="text" id="queryInput" name="queryInput">
+    <button type="submit">Ask</button>
+</form>
+<div id="resultDiv"></div>
+<div id="loadingDiv" class="loading"></div>
+
+<script>
+    const form = document.getElementById("queryForm");
+    const resultDiv = document.getElementById("resultDiv");
+    const loadingDiv = document.getElementById("loadingDiv");
+
+    form.addEventListener("submit", function(event) {
+        event.preventDefault();
+        const query = document.getElementById("queryInput").value;
+
+        // Show loading spinner
+        loadingDiv.style.display = "block";
+
+        fetch("/api/gptquery", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: "query=" + encodeURIComponent(query)
+        })
+            .then(response => response.text())
+            .then(result => {
+                resultDiv.innerHTML = `<p><strong>Question:</strong> ${query}</p><p><strong>Answer:</strong> ${result}</p>`;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<p>An error occurred: ${error}</p>`;
+            })
+            .finally(() => {
+                // Hide loading spinner
+                loadingDiv.style.display = "none";
+            });
+    });
+</script>
+</body>
+</html>
