@@ -29,8 +29,8 @@ app.UseStaticFiles();
 app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
 {
     var formCollection = await httpContext.Request.ReadFormAsync();
-
-    string query = formCollection["query"];
+    
+    string query = formCollection["query"]!;
     string apiKey = "";
     if (File.Exists(OpenaiApiKeyFileName))
         apiKey = File.ReadAllText(OpenaiApiKeyFileName);
