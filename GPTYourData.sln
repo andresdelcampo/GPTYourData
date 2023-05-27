@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Query", "Query\Query.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pdf2txt", "pdf2txt\pdf2txt.csproj", "{AD7BF6ED-EC44-48AA-8EEA-5DF4E334DDBE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpgradeEmbeddingsToV1.1", "UpgradeEmbeddingsToV1.1\UpgradeEmbeddingsToV1.1.csproj", "{98ABE3F5-0ECF-45D0-9442-1C9841DBD432}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{AD7BF6ED-EC44-48AA-8EEA-5DF4E334DDBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD7BF6ED-EC44-48AA-8EEA-5DF4E334DDBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD7BF6ED-EC44-48AA-8EEA-5DF4E334DDBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98ABE3F5-0ECF-45D0-9442-1C9841DBD432}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98ABE3F5-0ECF-45D0-9442-1C9841DBD432}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98ABE3F5-0ECF-45D0-9442-1C9841DBD432}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98ABE3F5-0ECF-45D0-9442-1C9841DBD432}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

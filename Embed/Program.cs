@@ -48,13 +48,27 @@ class Program
         const int maxSectionLength = 2048;
         var sections = SplitIntoSections(input, maxSectionLength);
 
+        List<object> embeddingsList = new List<object>();
+        
         int partCount = 0;
         foreach (var section in sections)
         {
-            await ProcessPart(section, filename, partCount++);
+            var result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
+
+            // Create an object that includes the embeddings, the original text
+            var embeddingObject = new
+            {
+                embeddings = result,
+                text = section
+            };
+            
+            embeddingsList.Add(embeddingObject);
+            partCount++;
         }
+
+        await WriteAllEmbeddingsToFile(filename, embeddingsList);
     }
-    
+
     private static List<string> SplitIntoSections(string text, int maxSectionLength)
     {
         var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -91,21 +105,17 @@ class Program
         return sections;
     }
 
-    private static async Task ProcessPart(string part, string filename, int partCount)
+    private static async Task WriteAllEmbeddingsToFile(string filename, List<object> embeddingsList)
     {
-        // Get the embeddings
-        var result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(part);
-
-        // Create an object that includes the embeddings, the original text, and the source file name
+        // Create an object that includes the list of embeddings and the source file name
         var outputObject = new
         {
-            embeddings = result,
-            text = part,
-            sourceFileName = filename
+            sourceFileName = filename,
+            embeddings = embeddingsList
         };
 
-        // Write the embeddings JSON file with unique name in Embeddings folder
-        string jsonFileName = $"embed_{filename}_{partCount}.json";
+        // Write the embeddings JSON file with the filename in Embeddings folder
+        string jsonFileName = $"embed_{filename}.json";
         string jsonFilePath = Path.Combine(EmbeddingsFolder, jsonFileName);
 
         string json = JsonSerializer.Serialize(outputObject);

@@ -3,10 +3,9 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net7.0</TargetFramework>
+        <RootNamespace>UpgradeV1._1</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>Embed</AssemblyName>
-        <RootNamespace>GPTYourDataEmbed</RootNamespace>
         <AssemblyVersion>1.1</AssemblyVersion>
         <FileVersion>1.1</FileVersion>
     </PropertyGroup>
@@ -21,15 +20,6 @@
 
     <ItemGroup>
       <PackageReference Include="OpenAI-DotNet" Version="4.3.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="OpenAI-API.key">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Input\PutYourTxtFilesHere">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
     </ItemGroup>
 
 </Project>

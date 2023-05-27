@@ -52,13 +52,16 @@ class Program
             foreach (var filePath in jsonFiles)
             {
                 string embeddingsJson = await File.ReadAllTextAsync(filePath);
-                var fileData = JsonSerializer.Deserialize<EmbeddingsFileData>(embeddingsJson);
+                var fileData = JsonSerializer.Deserialize<ConsolidatedEmbeddingsFileData>(embeddingsJson);
                 Debug.Assert(fileData != null);
 
-                double[] documentVector = fileData.embeddings.Data.SelectMany(datum => datum.Embedding).ToArray();
-                documentVector = NormalizeVector(documentVector); // Normalize the document vector
-                documentVectors.Add(documentVector);
-                documents.Add(fileData.text);
+                foreach (var embeddingObject in fileData.embeddings)
+                {
+                    double[] documentVector = embeddingObject.embeddings.Data.SelectMany(datum => datum.Embedding).ToArray();
+                    documentVector = NormalizeVector(documentVector); // Normalize the document vector
+                    documentVectors.Add(documentVector);
+                    documents.Add(embeddingObject.text);
+                }
             }
 
             Console.Write("Finding in files...    \r");
@@ -142,10 +145,17 @@ class Program
         }
     }
 
-    class EmbeddingsFileData
+#pragma warning disable 8618
+    public class EmbeddingData
     {
         public EmbeddingsResponse embeddings { get; set; }
         public string text { get; set; }
+    }
+
+    public class ConsolidatedEmbeddingsFileData
+    {
+        public List<EmbeddingData> embeddings { get; set; }
         public string sourceFileName { get; set; }
     }
+#pragma warning restore 8618
 }
