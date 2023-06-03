@@ -5,20 +5,12 @@ using OpenAI;
 using OpenAI.Completions;
 using OpenAI.Embeddings;
 using OpenAI.Models;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
 
 OpenAIClient? Api;
 const string OpenaiApiKeyFileName = "OpenAI-API.key";
 const string EmbeddingsFolder = "Embeddings";
 const double HighSimilarityThreshold = 0.8;     // For determining what documents to include in the context
+const string LogFileName = "GptYourData.log";
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
@@ -34,9 +26,9 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     string apiKey = "";
     if (File.Exists(OpenaiApiKeyFileName))
         apiKey = File.ReadAllText(OpenaiApiKeyFileName);
-
     if (apiKey.Length < 50)
     {
+        LogToFile("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
         return Results.BadRequest("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
     }
 
@@ -99,6 +91,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     // If no good matches were found:
     if (tokenCount == 0 || string.IsNullOrWhiteSpace(context))
     {
+        LogToFile($"Question: {query}, Answer: No good matches found.");
         return Results.NotFound("No good matches found.");
     }
 
@@ -106,7 +99,16 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     CompletionResult? result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.7, max_tokens: 256);
 
     // And if a result was found:
-    return Results.Ok(result.ToString().TrimStart());
+    if (result != null)
+    {
+        LogToFile($"Question: {query}, Answer: {result.ToString().TrimStart()}");
+        return Results.Ok(result.ToString().TrimStart());
+    }
+    else
+    {
+        LogToFile($"Question: {query}, Answer: Not answered.");
+        return Results.NotFound("Unable to answer your query. The model did not return an answer.");
+    }
 });
 
 app.Run();
@@ -140,6 +142,13 @@ static double CosineSimilarity(double[] vector1, double[] vector2)
     {
         return 0.0f;
     }
+}
+
+static void LogToFile(string content)
+{
+    using StreamWriter writer = new StreamWriter(LogFileName, true);
+    writer.WriteLine(content);
+    writer.WriteLine();
 }
 
 #pragma warning disable 8618
