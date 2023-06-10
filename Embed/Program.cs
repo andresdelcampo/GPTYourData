@@ -1,15 +1,16 @@
 ﻿using System.Text;
+using System.Text.Json;
 using OpenAI;
 using OpenAI.Models;
-using System.Text.Json;
 
-namespace GPTYourDataProgram;
+namespace GPTYourDataEmbed;
 
 class Program
 {
     private static OpenAIClient? Api;
     private const string OpenaiApiKeyFileName = "OpenAI-API.key";
     private const string InputsFolder = "Input";
+    private const string InputsDoneFolder = "InputDone";
     private const string EmbeddingsFolder = "Embeddings";
 
     static async Task Main(string[] args)
@@ -26,8 +27,9 @@ class Program
         
         Api = new OpenAIClient(apiKey, Model.Ada);
         
-        // Create directory to store embeddings
+        // Create directory to store embeddings and to move the input files once done
         Directory.CreateDirectory(EmbeddingsFolder);
+        Directory.CreateDirectory(InputsDoneFolder);
 
         // Get all txt files from the folder
         var txtFiles = Directory.GetFiles(InputsFolder, "*.txt");
@@ -41,6 +43,8 @@ class Program
 
     private static async Task ProcessFile(string filePath)
     {
+        Console.Write($"Processing {filePath}... ");
+
         string input = await File.ReadAllTextAsync(filePath);
         string filename = Path.GetFileName(filePath);
 
@@ -50,7 +54,6 @@ class Program
 
         List<object> embeddingsList = new List<object>();
         
-        int partCount = 0;
         foreach (var section in sections)
         {
             var result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
@@ -63,10 +66,27 @@ class Program
             };
             
             embeddingsList.Add(embeddingObject);
-            partCount++;
         }
 
         await WriteAllEmbeddingsToFile(filename, embeddingsList);
+        
+        Console.WriteLine("DONE");
+
+        // Move processed file to InputDone folder
+        string newFilePath = Path.Combine(InputsDoneFolder, filename);
+        MoveFile(filePath, newFilePath);
+    }
+
+    private static void MoveFile(string filePath, string newFilePath)
+    {
+        try
+        {
+            File.Move(filePath, newFilePath);
+        }
+        catch (Exception)
+        {
+            Console.WriteLine($"ERROR: Could not move {filePath} to {newFilePath}. It will need to be moved manually.");
+        }
     }
 
     private static List<string> SplitIntoSections(string text, int maxSectionLength)
@@ -120,6 +140,5 @@ class Program
 
         string json = JsonSerializer.Serialize(outputObject);
         await File.WriteAllTextAsync(jsonFilePath, json);
-        Console.WriteLine(json);
     }
 }
