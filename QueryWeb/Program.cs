@@ -8,9 +8,9 @@ using OpenAI.Models;
 
 OpenAIClient? Api;
 const string OpenaiApiKeyFileName = "OpenAI-API.key";
-const string EmbeddingsFolder = "Embeddings";
-const double HighSimilarityThreshold = 0.8;     // For determining what documents to include in the context
 const string LogFileName = "GptYourData.log";
+const string EmbeddingsFolder = "Embeddings";
+const double HighSimilarityThreshold = 0.75;     // For determining what documents to include in the context
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
@@ -23,6 +23,9 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     var formCollection = await httpContext.Request.ReadFormAsync();
     
     string query = formCollection["query"]!;
+    if (string.IsNullOrWhiteSpace(query))
+        return Results.BadRequest("Empty question asked.");
+    
     string apiKey = "";
     if (File.Exists(OpenaiApiKeyFileName))
         apiKey = File.ReadAllText(OpenaiApiKeyFileName);
@@ -95,20 +98,42 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
         return Results.NotFound("No good matches found.");
     }
 
+    // Query the model with a retry providing the question and context to obtain the final answer
     string completeQuery = @$"The following information is provided for context: \n\n{context} \n\n Given this information, can you please answer the following question: \n\n ""{query}""?";
-    CompletionResult? result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.7, max_tokens: 256);
+    const int MaxRetries = 3; // set the maximum number of retries
+    int retries = 0; // initialize the retry count
+    CompletionResult? result = null;
+
+    while (retries < MaxRetries)
+    {
+        try
+        {
+            result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, max_tokens: 1024);
+            break; // if the operation is successful, break out of the loop
+        }
+        catch (Exception ex)
+        {
+            retries++; 
+            if (retries >= MaxRetries)
+            {
+                LogToFile($"Question: {query}, Exception: {ex}");
+                return Results.Problem("An error occurred contacting the OpenAI service. You may try again in a moment.");
+            }
+
+            await Task.Delay(1000 * retries); // wait for a period of time before retrying (exponential backoff)
+        }
+    }
 
     // And if a result was found:
     if (result != null)
     {
         LogToFile($"Question: {query}, Answer: {result.ToString().TrimStart()}");
-        return Results.Ok(result.ToString().TrimStart());
+        string resultForWeb = System.Net.WebUtility.HtmlEncode(result.ToString().TrimStart()).Replace("\r\n", "<br />");
+        return Results.Ok(resultForWeb);
     }
-    else
-    {
-        LogToFile($"Question: {query}, Answer: Not answered.");
-        return Results.NotFound("Unable to answer your query. The model did not return an answer.");
-    }
+
+    LogToFile($"Question: {query}, Answer: Not answered.");
+    return Results.NotFound("Unable to answer your query. The model did not return an answer.");
 });
 
 app.Run();
@@ -138,10 +163,8 @@ static double CosineSimilarity(double[] vector1, double[] vector2)
     {
         return dotProduct / (magnitude1 * magnitude2);
     }
-    else
-    {
-        return 0.0f;
-    }
+
+    return 0.0f;
 }
 
 static void LogToFile(string content)
