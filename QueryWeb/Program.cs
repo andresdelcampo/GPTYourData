@@ -55,7 +55,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     
     // Process a question
     if (string.IsNullOrWhiteSpace(query))
-        return Results.BadRequest("Empty question asked.");
+        return Results.Problem("Empty question asked.");
 
     Api = new OpenAIClient(OpenAIAuthentication.LoadFromDirectory("."));
 
@@ -132,7 +132,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     if (tokenCount == 0 || string.IsNullOrWhiteSpace(context))
     {
         LogToFile($"Question: {query}, Answer: No good matches found.");
-        return Results.NotFound("No good matches found.");
+        return Results.Problem("No good matches found.");
     }
 
     // Query the model with a retry providing the question and context to obtain the final answer
@@ -170,7 +170,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     }
 
     LogToFile($"Question: {query}, Answer: Not answered.");
-    return Results.NotFound("Unable to answer your query. The model did not return an answer.");
+    return Results.Problem("Unable to answer your query. The model did not return an answer.");
 });
 
 app.Run();

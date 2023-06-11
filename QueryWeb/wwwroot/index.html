@@ -221,7 +221,7 @@
             })
             .catch(error => {
                 const errorMessage = document.createElement("p");
-                errorMessage.innerText = `An error occurred: ${error}`;
+                errorMessage.innerText = `${error}`;
                 conversationDiv.appendChild(errorMessage);
                 // If there's at least one response, show the Clear button
                 if (conversationDiv.childElementCount > 0) {
@@ -282,7 +282,7 @@
             })
             .catch(error => {
                 // Handle any errors by updating the message div
-                messageDiv.innerHTML = "An error occurred: " + error.message;
+                messageDiv.innerHTML = "Error: " + error.message;
             });
 
         // Clear file field
