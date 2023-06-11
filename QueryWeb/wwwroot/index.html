@@ -54,22 +54,30 @@
     <label for="queryInput">Question:</label>
     <input type="text" id="queryInput" name="queryInput">
     <button type="submit">Ask</button>
+    <div id="resultDiv"></div>
+    <div id="loadingDiv" class="loading"></div>
+    <div id="conversationDiv"></div>
+    <button id="clearButton">Clear</button>
+    <br><br>
+    <label for="fileUpload">You can also contribute a .txt file to the knowledge base:</label>
+    <input type="file" id="fileUpload" name="fileUpload" accept=".txt">
+    <button type="button" id="uploadButton">Upload File</button>
+    <div id="messageDiv"></div>
 </form>
-<div id="resultDiv"></div>
-<div id="loadingDiv" class="loading"></div>
-<div id="conversationDiv"></div>
-<button id="clearButton">Clear</button>
-
 <script>
     const form = document.getElementById("queryForm");
+    const queryInput = document.getElementById("queryInput");
     const resultDiv = document.getElementById("resultDiv");
     const loadingDiv = document.getElementById("loadingDiv");
     const conversationDiv = document.getElementById("conversationDiv");
     const clearButton = document.getElementById("clearButton");
-
+    const fileUpload = document.getElementById("fileUpload");
+    const uploadButton = document.getElementById("uploadButton");
+    const messageDiv = document.getElementById("messageDiv");
+    
     form.addEventListener("submit", function(event) {
         event.preventDefault();
-        const query = document.getElementById("queryInput").value;
+        const query = queryInput.value;
 
         // Show loading spinner
         loadingDiv.style.display = "block";
@@ -98,9 +106,61 @@
             });
 
         // Clear input field
-        document.getElementById("queryInput").value = "";
+        queryInput.value = "";
     });
 
+    fileUpload.addEventListener("change", function() {
+        // Clear the message
+        messageDiv.innerHTML = "";
+    })
+    
+    uploadButton.addEventListener("click", function() {
+        const fileToUpload = fileUpload.files[0];  // Get the selected file
+
+        // Create a FormData instance
+        const formData = new FormData();
+        formData.append("file", fileToUpload);   // Append the file
+
+        // Check the file size
+        const fileSize = fileToUpload.size / 1024 / 1024; // size in MB
+        if (fileSize > 1) {
+            messageDiv.innerHTML = "The selected file is too large. Please select a file smaller than 1MB.";
+            return;
+        }
+        
+        fetch("/api/gptquery", {
+            method: "POST",
+            body: formData  // Send the FormData object
+        })
+            .then(response => {
+                if (!response.ok) {
+                    // The HTTP status code is 4xx or 5xx
+                    // Use the json() method to parse the JSON in the response
+                    return response.json().then(errorJson => {
+                        // Throw an Error with the detail in the JSON response
+                        throw new Error(errorJson.detail);
+                    });
+                }
+                return response.text();
+            })
+            .then(data => {
+                // Handle the response by updating the message div
+                messageDiv.innerHTML = "File uploaded successfully. You should be able to query the new data now.";
+
+                // Clear the message after 5 seconds
+                setTimeout(() => {
+                    messageDiv.innerHTML = "";
+                }, 5000);
+            })
+            .catch(error => {
+                // Handle any errors by updating the message div
+                messageDiv.innerHTML = "An error occurred: " + error.message;
+            });
+
+        // Clear file field
+        fileUpload.value = "";
+    });
+    
     clearButton.addEventListener("click", function() {
         // Clear conversation
         conversationDiv.innerHTML = "";

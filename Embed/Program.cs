@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using OpenAI;
 using OpenAI.Embeddings;
-using OpenAI.Models;
 
 namespace GPTYourDataEmbed;
 
@@ -52,7 +51,7 @@ class Program
             EmbeddingsResponse? result;
             try
             {
-                result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
+                result = await Api!.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
             }
             catch (HttpRequestException e)
             {
