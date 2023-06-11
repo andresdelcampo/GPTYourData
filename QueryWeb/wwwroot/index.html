@@ -5,12 +5,65 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin-left: 30px;
-            max-width: 1000px;
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Keep the background behind the content */
+            background-image: url('background.png');
+            background-size: cover; /* Cover the entirety of the page */
+            background-position: center; /* Center the image */
+            opacity: 0.5; /* Lower value makes the image more transparent */
         }
 
+        body {
+            background-color: white; /* This will be visible through the semi-transparent image */
+            font-family: 'Roboto', sans-serif;
+            margin: 30px;
+            max-width: 1000px;
+            color: #404147;
+        }
+
+        h1 {
+            color: #E3E5FC;
+        }
+
+        form {
+            background-color: #E3E5FC;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background-color: #3498db;
+            width: 125px;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            horiz-align: right;
+            font-size: 1em;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            cursor: pointer;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 80%;
+            padding: 10px;
+            margin-right: 12px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
         .loading {
             display: none;
             margin-top: 20px;
@@ -46,10 +99,13 @@
         }
 
         #clearButton {
+            display: none;
             margin-top: 10px;
         }
 
         .collapsible {
+            background-color: #3498db;
+            color: white;
             cursor: pointer;
             padding: 12px;
             width: 100%;
@@ -60,10 +116,17 @@
             transition: 0.4s;
         }
 
+        .collapsible:focus {
+            outline: 2px solid #000;
+        }
+        
         .content {
             padding: 0 18px;
+            margin-top: 20px;
             overflow: hidden;
-            background-color: #f1f1f1;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
         }
 
         .collapsed {
@@ -73,34 +136,39 @@
 </head>
 <body>
 <h1>GPT Your Data</h1>
-<a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a> is a simple but fast and effective C# vector search engine that utilizes OpenAI's GPT models for generating embeddings and answering questions based on local files. 
-It logs the questions so that unanswered ones may be added to the knowledge base over time.<br><br>
-<b>WARNING:</b> It may produce inaccurate information.<br><br>
 <form id="queryForm">
-    <label for="queryInput">Question:</label>
+    <a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a> is a simple but fast and effective C# vector search engine that utilizes OpenAI's GPT models for generating embeddings and answering questions based on local files.
+    It logs the questions so that unanswered ones may be added to the knowledge base over time.<br><br>
+    <b>WARNING:</b> It may produce inaccurate information.<br><br>
+    <label for="queryInput">Question:</label><br>
     <input type="text" id="queryInput" name="queryInput">
     <button type="submit">Ask</button>
     <div id="resultDiv"></div>
-    <div id="loadingDiv" class="loading"></div>
     <div id="conversationDiv"></div>
-    <button id="clearButton">Clear</button>
+    <div id="loadingDiv" class="loading"></div>
+    <button id="clearButton" type="button">Clear</button>
     <br><br>
-    <label for="fileUpload">You can also contribute a .txt file to the knowledge base:</label>
-    <input type="file" id="fileUpload" name="fileUpload" accept=".txt">
-    <button type="button" id="uploadButton">Upload File</button>
-    <div id="messageDiv"></div>
+    <button class="collapsible" onclick="toggleCollapseQuestions()" type="button">Sample questions and suggestions</button>
+    <div id="questionsContainer" class="content collapsed">
+        <br>
+        Sample questions:
+        <ul>
+            <li>Enter your sample questions here</li>
+            <li>...</li>
+        </ul>
+        If you have questions, issues or suggestions about this tool, please raise them in <a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a>.<br><br>
+    </div>
+    <br><br>
+    <button class="collapsible" onclick="toggleCollapseUpload()" type="button">Upload a text file to the knowledge base</button>
+    <div id="uploadContainer" class="content collapsed">
+        <br>
+        <label for="fileUpload">You can contribute to the knowledge base uploading a .txt file:</label>
+        <input type="file" id="fileUpload" name="fileUpload" accept=".txt">
+        <button type="button" id="uploadButton">Upload File</button>
+        <div id="messageDiv"></div>
+        <br>
+    </div>
 </form>
-<br>
-<button class="collapsible" onclick="toggleCollapse()">Sample questions and suggestions (click to toggle)</button>
-<div id="contentContainer" class="content collapsed">
-    Sample questions:
-    <ul>
-        <li>Enter your sample questions here</li>
-        <li>...</li>
-    </ul>
-    If you have questions or suggestions about this tool, please raise them in <a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a>.<br><br>
-    <b>NEW:</b> You can now upload TXT files yourself from this page and query them right away!<br><br>
-</div>
 
 <script>
     const form = document.getElementById("queryForm");
@@ -112,6 +180,10 @@ It logs the questions so that unanswered ones may be added to the knowledge base
     const fileUpload = document.getElementById("fileUpload");
     const uploadButton = document.getElementById("uploadButton");
     const messageDiv = document.getElementById("messageDiv");
+
+    window.onload = function() {
+        document.getElementById("queryInput").focus();
+    }
     
     form.addEventListener("submit", function(event) {
         event.preventDefault();
@@ -127,16 +199,34 @@ It logs the questions so that unanswered ones may be added to the knowledge base
             },
             body: "query=" + encodeURIComponent(query)
         })
-            .then(response => response.text())
+            .then(response => {
+                if (!response.ok) {
+                    // The HTTP status code is 4xx or 5xx
+                    // Use the json() method to parse the JSON in the response
+                    return response.json().then(errorJson => {
+                        // Throw an Error with the detail in the JSON response
+                        throw new Error(errorJson.detail);
+                    });
+                }
+                return response.text();
+            })
             .then(result => {
                 const questionAnswer = document.createElement("p");
                 questionAnswer.innerHTML = `<strong>Question:</strong> ${query}<br><strong>Answer:</strong> ${result}`;
                 conversationDiv.appendChild(questionAnswer);
+                // If there's at least one response, show the Clear button
+                if (conversationDiv.childElementCount > 0) {
+                    clearButton.style.display = "inline-block";
+                }
             })
             .catch(error => {
                 const errorMessage = document.createElement("p");
                 errorMessage.innerText = `An error occurred: ${error}`;
                 conversationDiv.appendChild(errorMessage);
+                // If there's at least one response, show the Clear button
+                if (conversationDiv.childElementCount > 0) {
+                    clearButton.style.display = "inline-block";
+                }
             })
             .finally(() => {
                 // Hide loading spinner
@@ -202,10 +292,16 @@ It logs the questions so that unanswered ones may be added to the knowledge base
     clearButton.addEventListener("click", function() {
         // Clear conversation
         conversationDiv.innerHTML = "";
+        clearButton.style.display = "none";
     });
 
-    function toggleCollapse() {
-        var contentContainer = document.getElementById("contentContainer");
+    function toggleCollapseQuestions() {
+        var contentContainer = document.getElementById("questionsContainer");
+        contentContainer.classList.toggle("collapsed");
+    }
+
+    function toggleCollapseUpload() {
+        var contentContainer = document.getElementById("uploadContainer");
         contentContainer.classList.toggle("collapsed");
     }
 </script>

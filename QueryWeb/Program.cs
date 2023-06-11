@@ -72,7 +72,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
         {
             string error = $"The OpenAI API key is invalid. Please add it to the {OpenaiApiKeyFileName} file";
             Console.WriteLine(error);
-            return Results.BadRequest(error);
+            return Results.Problem(error);
         }
         throw;
     }
@@ -145,7 +145,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     {
         try
         {
-            result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, maxTokens: 1024);
+            result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, maxTokens: 512);
             break; // if the operation is successful, break out of the loop
         }
         catch (Exception ex)
