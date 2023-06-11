@@ -7,6 +7,8 @@
 
         body {
             font-family: 'Roboto', sans-serif;
+            margin-left: 30px;
+            max-width: 1000px;
         }
 
         .loading {
@@ -46,10 +48,34 @@
         #clearButton {
             margin-top: 10px;
         }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .content {
+            padding: 0 18px;
+            overflow: hidden;
+            background-color: #f1f1f1;
+        }
+
+        .collapsed {
+            display: none;
+        }
     </style>
 </head>
 <body>
 <h1>GPT Your Data</h1>
+<a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a> is a simple but fast and effective C# vector search engine that utilizes OpenAI's GPT models for generating embeddings and answering questions based on local files. 
+It logs the questions so that unanswered ones may be added to the knowledge base over time.<br><br>
+<b>WARNING:</b> It may produce inaccurate information.<br><br>
 <form id="queryForm">
     <label for="queryInput">Question:</label>
     <input type="text" id="queryInput" name="queryInput">
@@ -64,6 +90,18 @@
     <button type="button" id="uploadButton">Upload File</button>
     <div id="messageDiv"></div>
 </form>
+<br>
+<button class="collapsible" onclick="toggleCollapse()">Sample questions and suggestions (click to toggle)</button>
+<div id="contentContainer" class="content collapsed">
+    Sample questions:
+    <ul>
+        <li>Enter your sample questions here</li>
+        <li>...</li>
+    </ul>
+    If you have questions or suggestions about this tool, please raise them in <a href="https://github.com/andresdelcampo/GPTYourData">GPTYourData</a>.<br><br>
+    <b>NEW:</b> You can now upload TXT files yourself from this page and query them right away!<br><br>
+</div>
+
 <script>
     const form = document.getElementById("queryForm");
     const queryInput = document.getElementById("queryInput");
@@ -165,6 +203,11 @@
         // Clear conversation
         conversationDiv.innerHTML = "";
     });
+
+    function toggleCollapse() {
+        var contentContainer = document.getElementById("contentContainer");
+        contentContainer.classList.toggle("collapsed");
+    }
 </script>
 </body>
 </html>
