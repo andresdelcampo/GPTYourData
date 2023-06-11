@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using OpenAI;
@@ -7,7 +8,7 @@ using OpenAI.Embeddings;
 using OpenAI.Models;
 
 OpenAIClient? Api;
-const string OpenaiApiKeyFileName = "OpenAI-API.key";
+const string OpenaiApiKeyFileName = ".openai";
 const string LogFileName = "GptYourData.log";
 const string EmbeddingsFolder = "Embeddings";
 const double HighSimilarityThreshold = 0.75;     // For determining what documents to include in the context
@@ -25,20 +26,26 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     string query = formCollection["query"]!;
     if (string.IsNullOrWhiteSpace(query))
         return Results.BadRequest("Empty question asked.");
-    
-    string apiKey = "";
-    if (File.Exists(OpenaiApiKeyFileName))
-        apiKey = File.ReadAllText(OpenaiApiKeyFileName);
-    if (apiKey.Length < 50)
+
+    Api = new OpenAIClient(OpenAIAuthentication.LoadFromDirectory("."));
+
+    // Create the embedding for the query
+    EmbeddingsResponse? queryEmbed;
+    try
     {
-        LogToFile("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
-        return Results.BadRequest("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
+        queryEmbed = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(query);
+        Debug.Assert(queryEmbed != null);
     }
-
-    Api = new OpenAIClient(apiKey, Model.Ada);
-
-    EmbeddingsResponse? queryEmbed = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(query);
-    Debug.Assert(queryEmbed != null);
+    catch (HttpRequestException e)
+    {
+        if (e.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            string error = $"The OpenAI API key is invalid. Please add it to the {OpenaiApiKeyFileName} file";
+            Console.WriteLine(error);
+            return Results.BadRequest(error);
+        }
+        throw;
+    }
 
     double[] queryVector = queryEmbed.Data.SelectMany(datum => datum.Embedding).ToArray();
     queryVector = NormalizeVector(queryVector); // Normalize the query vector
@@ -108,7 +115,7 @@ app.MapPost("/api/gptquery", async (HttpContext httpContext) =>
     {
         try
         {
-            result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, max_tokens: 1024);
+            result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, maxTokens: 1024);
             break; // if the operation is successful, break out of the loop
         }
         catch (Exception ex)

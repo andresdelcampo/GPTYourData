@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using OpenAI;
@@ -11,24 +12,14 @@ namespace GPTYourDataQuery;
 class Program
 {
     private static OpenAIClient? Api;
-    private const string OpenaiApiKeyFileName = "OpenAI-API.key";
+    private const string OpenaiApiKeyFileName = ".openai";
     private const string EmbeddingsFolder = "Embeddings";
     private const double HighSimilarityThreshold = 0.8;     // For determining what documents to include in the context
     
     static async Task Main()
     {
-        string apiKey = "";
-        if (File.Exists(OpenaiApiKeyFileName))
-            apiKey = File.ReadAllText(OpenaiApiKeyFileName);
+        Api = new OpenAIClient(OpenAIAuthentication.LoadFromDirectory("."));
 
-        if (apiKey.Length < 50)
-        {
-            Console.WriteLine("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
-            return;
-        }
-        
-        Api = new OpenAIClient(apiKey, Model.Ada);
-        
         while (true)
         {
             // Get the query from the user 
@@ -37,13 +28,27 @@ class Program
             string? query = Console.ReadLine();
             if (string.IsNullOrEmpty(query)) return;
 
-            EmbeddingsResponse? queryEmbed = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(query);
-            Debug.Assert(queryEmbed != null);
+            // Create the embedding for the query
+            EmbeddingsResponse? queryEmbed;
+            try
+            {
+                queryEmbed = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(query);
+                Debug.Assert(queryEmbed != null);
+            }
+            catch (HttpRequestException e)
+            {
+                if (e.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    Console.WriteLine($"The OpenAI API key is invalid. Please add it to the {OpenaiApiKeyFileName} file");
+                    return;
+                }
+                throw;
+            }
 
             double[] queryVector = queryEmbed.Data.SelectMany(datum => datum.Embedding).ToArray();
             queryVector = NormalizeVector(queryVector); // Normalize the query vector
 
-            // Get all json files from the folder
+            // Get all json files from the embeddings folder
             var jsonFiles = Directory.GetFiles(EmbeddingsFolder, "*.json");
 
             Console.Write("Reading files...    \r");
@@ -100,7 +105,7 @@ class Program
 
             Console.Write("Answering...        \r");
             string completeQuery = @$"The following information is provided for context: \n\n{context} \n\n Given this information, can you please answer the following question: \n\n ""{query}""?";
-            CompletionResult? result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.7, max_tokens: 256);
+            CompletionResult? result = await Api.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.7, maxTokens: 1024);
 
             Console.WriteLine(result.ToString().TrimStart());
             

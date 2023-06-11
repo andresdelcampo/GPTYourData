@@ -20,11 +20,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenAI-DotNet" Version="4.3.0" />
+      <PackageReference Include="OpenAI-DotNet" Version="6.8.7" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="OpenAI-API.key">
+      <None Update=".openai">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Input\PutYourTxtFilesHere">

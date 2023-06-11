@@ -1,6 +1,8 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using System.Text.Json;
 using OpenAI;
+using OpenAI.Embeddings;
 using OpenAI.Models;
 
 namespace GPTYourDataEmbed;
@@ -8,24 +10,14 @@ namespace GPTYourDataEmbed;
 class Program
 {
     private static OpenAIClient? Api;
-    private const string OpenaiApiKeyFileName = "OpenAI-API.key";
+    private const string OpenaiApiKeyFileName = ".openai";
     private const string InputsFolder = "Input";
     private const string InputsDoneFolder = "InputDone";
     private const string EmbeddingsFolder = "Embeddings";
 
     static async Task Main(string[] args)
     {
-        string apiKey = "";
-        if (File.Exists(OpenaiApiKeyFileName))
-            apiKey = File.ReadAllText(OpenaiApiKeyFileName);
-
-        if (apiKey.Length < 50)
-        {
-            Console.WriteLine("The OpenAI API key is missing or invalid. Please add it to the OpenAI-API.key file");
-            return;
-        }
-        
-        Api = new OpenAIClient(apiKey, Model.Ada);
+        Api = new OpenAIClient(OpenAIAuthentication.LoadFromDirectory("."));
         
         // Create directory to store embeddings and to move the input files once done
         Directory.CreateDirectory(EmbeddingsFolder);
@@ -37,11 +29,12 @@ class Program
         // Process each file
         foreach (var filePath in txtFiles)
         {
-            await ProcessFile(filePath);
+            bool processed = await ProcessFile(filePath);
+            if (!processed) break;  // API call failed, abort
         }
     }
 
-    private static async Task ProcessFile(string filePath)
+    private static async Task<bool> ProcessFile(string filePath)
     {
         Console.Write($"Processing {filePath}... ");
 
@@ -56,7 +49,20 @@ class Program
         
         foreach (var section in sections)
         {
-            var result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
+            EmbeddingsResponse? result;
+            try
+            {
+                result = await Api.EmbeddingsEndpoint.CreateEmbeddingAsync(section);
+            }
+            catch (HttpRequestException e)
+            {
+                if (e.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    Console.WriteLine($"The OpenAI API key is invalid. Please add it to the {OpenaiApiKeyFileName} file");
+                    return false;
+                }
+                throw;
+            }
 
             // Create an object that includes the embeddings, the original text
             var embeddingObject = new
@@ -75,6 +81,7 @@ class Program
         // Move processed file to InputDone folder
         string newFilePath = Path.Combine(InputsDoneFolder, filename);
         MoveFile(filePath, newFilePath);
+        return true;
     }
 
     private static void MoveFile(string filePath, string newFilePath)
