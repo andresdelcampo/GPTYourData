@@ -3,13 +3,13 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using OpenAI;
-using OpenAI.Completions;
+using OpenAI.Chat;
 using OpenAI.Embeddings;
 using OpenAI.Models;
 
 namespace QueryWeb;
 
-public class Embeddings
+public class QuestionAnswerer
 {
     const string OpenaiApiKeyFileName = ".openai";
     const string EmbeddingsFolder = "Embeddings";
@@ -19,7 +19,7 @@ public class Embeddings
 
     OpenAIClient? _api;
 
-    public Embeddings(string logFileName)
+    public QuestionAnswerer(string logFileName)
     {
         _logFileName = logFileName;
     }
@@ -51,14 +51,14 @@ public class Embeddings
         EmbeddingsResponse? queryEmbed;
         try
         {
-            queryEmbed = await CreateEmbeddingForQuery(query);
+            queryEmbed = await CallApiWithRetry(query, () => CreateEmbeddingForQuery(query));
         }
         catch (Exception ex)
         {
-            return HandleEmbeddingCreationException(ex);
+            return HandleApiException(query, ex);
         }
         
-        double[] queryVector = NormalizeEmbeddingsToVector(queryEmbed); // Normalize the query vector
+        double[] queryVector = NormalizeEmbeddingsToVector(queryEmbed!); // Normalize the query vector
 
         List<ConsolidatedEmbeddingsFileData> fileDataList;
         try
@@ -85,15 +85,20 @@ public class Embeddings
         // Query the model with a retry providing the question and context to obtain the final answer
         string completeQuery = @$"The following information is provided for context: \n\n{context} \n\n Given this information, can you please answer the following question: \n\n ""{query}""?";
 
-        CompletionResult? result;
+        ChatResponse? result;
         try
         {
-            result = await CallApiWithRetry(query, () => _api!.CompletionsEndpoint.CreateCompletionAsync(completeQuery, model: Model.Davinci, temperature: 0.1, maxTokens: 512));
+            var messages = new List<Message>
+            {
+                new(Role.System, "You are a helpful assistant called 'Ask F&T' which stands for Ask Frameworks and Tools."),
+                new(Role.User, completeQuery),
+            };
+            var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo_16K, temperature: 0.1, maxTokens: 512);
+            result = await CallApiWithRetry(query, () => _api!.ChatEndpoint.GetCompletionAsync(chatRequest));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            LogToFile($"Question: {query}, An error occurred contacting the OpenAI service. You may try again in a moment.");
-            return Results.Problem("An error occurred contacting the OpenAI service. You may try again in a moment.");
+            return HandleApiException(query, ex);
         }
 
         return ProcessQueryResult(query, result);
@@ -105,7 +110,7 @@ public class Embeddings
         return queryEmbed;
     }
 
-    private IResult HandleEmbeddingCreationException(Exception ex)
+    private IResult HandleApiException(string query, Exception ex)
     {
         if (ex is UnauthorizedAccessException or HttpRequestException { StatusCode: HttpStatusCode.Unauthorized })
         {
@@ -114,7 +119,8 @@ public class Embeddings
             return Results.Problem(error);
         }
         
-        throw ex;
+        LogToFile($"Question: {query}, An error occurred contacting the OpenAI service. You may try again in a moment.");
+        return Results.Problem("An error occurred contacting the OpenAI service. You may try again in a moment.");
     }
     
     private async Task<List<ConsolidatedEmbeddingsFileData>> ReadEmbeddingFiles()
@@ -186,20 +192,20 @@ public class Embeddings
         return contextBuilder.ToString();
     }
     
-    private IResult ProcessQueryResult(string query, CompletionResult? result)
+    private IResult ProcessQueryResult(string query, ChatResponse? result)
     {
         // And if a result was found:
         if (result != null)
         {
-            LogToFile($"Question: {query}, Answer: {result.ToString().TrimStart()}");
-            string resultForWeb = System.Net.WebUtility.HtmlEncode(result.ToString().TrimStart()).Replace("\r\n", "<br />");
+            LogToFile($"Question: {query}, Answer: {result.FirstChoice.Message.Content.TrimStart()}");
+            string resultForWeb = System.Net.WebUtility.HtmlEncode(result.FirstChoice.Message.Content.TrimStart()).Replace("\r\n", "<br />").Replace("\n", "<br />");
             return Results.Ok(resultForWeb);
         }
 
         LogToFile($"Question: {query}, Answer: Not answered.");
         return Results.Problem("Unable to answer your query. The model did not return an answer.");
     }
-    
+
     async Task<T?> CallApiWithRetry<T>(string query, Func<Task<T>> action)
     {
         const int maxRetries = 3;

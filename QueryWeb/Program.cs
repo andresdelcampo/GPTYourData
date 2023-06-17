@@ -57,7 +57,7 @@ async Task<IResult> ProcessFileUpload(IFormFile file)
 
 async Task<IResult> ProcessQuestion(string query)
 {
-    Embeddings embeddings = new Embeddings(LogFileName);
+    QuestionAnswerer embeddings = new QuestionAnswerer(LogFileName);
     IResult result = await embeddings.ProcessQuestion(query);
     return result;
 }
