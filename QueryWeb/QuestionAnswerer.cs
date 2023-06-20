@@ -35,8 +35,10 @@ public class QuestionAnswerer
         catch (Exception e)
         {
             Console.WriteLine(e);
-            LogToFile($"Error initializing OpenAI API. Make sure the key is added to the {OpenaiApiKeyFileName} file");
-            result = Results.Problem("No good matches found.");
+            string error = $"Error initializing OpenAI API. Make sure the key is added to the {OpenaiApiKeyFileName} file"; 
+            LogToFile(error);
+            LogToFile(e.ToString());
+            result = Results.Problem(error);
             return false;
         }
     }
@@ -65,9 +67,10 @@ public class QuestionAnswerer
         {
             fileDataList = await ReadEmbeddingFiles();
         }
-        catch (Exception)
+        catch (Exception e)
         {
             LogToFile($"Question: {query}, An error occurred while reading the file data.");
+            LogToFile(e.ToString());
             return Results.Problem("An error occurred while reading the file data.");
         }
 
