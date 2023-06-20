@@ -24,27 +24,27 @@ public class QuestionAnswerer
         _logFileName = logFileName;
     }
 
-    private IResult InitApi()
+    private bool InitApi(out IResult result)
     {
+        result = Results.Ok();
         try
         {
             _api = new OpenAIClient(OpenAIAuthentication.LoadFromDirectory("."));
+            return true;
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             LogToFile($"Error initializing OpenAI API. Make sure the key is added to the {OpenaiApiKeyFileName} file");
-            return Results.Problem("No good matches found.");
+            result = Results.Problem("No good matches found.");
+            return false;
         }
-
-        return Results.Ok();
     }
     
     public async Task<IResult> ProcessQuestion(string query)
     {
         // Initialize OpenAI API
-        IResult apiResult = InitApi();
-        if (apiResult != Results.Ok())
+        if (!InitApi(out IResult apiResult))
             return apiResult;
 
         // Create the embedding for the query
