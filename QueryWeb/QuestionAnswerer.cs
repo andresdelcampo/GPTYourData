@@ -11,6 +11,7 @@ namespace QueryWeb;
 
 public class QuestionAnswerer
 {
+    const string SystemMessage = "You are a helpful assistant called 'GPTYourData'.";
     const string OpenaiApiKeyFileName = ".openai";
     const string EmbeddingsFolder = "Embeddings";
     const double HighSimilarityThreshold = 0.75;     // For determining what documents to include in the context
@@ -93,7 +94,7 @@ public class QuestionAnswerer
         {
             var messages = new List<Message>
             {
-                new(Role.System, "You are a helpful assistant called 'Ask F&T' which stands for Ask Frameworks and Tools."),
+                new(Role.System, SystemMessage),
                 new(Role.User, completeQuery),
             };
             var chatRequest = new ChatRequest(messages, Model.GPT3_5_Turbo_16K, temperature: 0.1, maxTokens: 512);
