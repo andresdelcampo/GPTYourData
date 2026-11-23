@@ -30,3 +30,8 @@ Enjoy the power of AI-driven search on your local files!
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+
+## More projects
+
+For more of my projects, visit [Software Workshop](https://andresdelcampo.github.io/software-showcase/).
